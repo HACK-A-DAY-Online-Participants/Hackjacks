@@ -20,6 +20,8 @@ import android.database.Cursor
 import android.util.Log
 import android.provider.ContactsContract
 import android.net.Uri
+import android.widget.TableLayout
+import android.widget.TableRow
 
 
 class MainActivity : AppCompatActivity() {
@@ -69,14 +71,14 @@ class MainActivity : AppCompatActivity() {
                     LONGITUDE = longitude.toString()
 
                     //coordinates_text = "Lat: $latitude, Lon: $longitude"
-                    //Toast.makeText(this, "Location: $latitude, $longitude", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Location: $latitude, $longitude", Toast.LENGTH_LONG).show()
 
                 } else {
 
                     //coordinates_text = "Location not found"
                     LATITUDE = ""
                     LONGITUDE = ""
-                    //Toast.makeText(this, "Location not found. Try again or check settings.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Location not found. Try again or check settings.", Toast.LENGTH_SHORT).show()
                 }
             }
             .addOnFailureListener { e ->
@@ -89,7 +91,7 @@ class MainActivity : AppCompatActivity() {
 
     // ================ PHONE NUMBER LIST =========================
     // 1. Create a list to store the numbers
-    private val myPhoneNumbers = mutableListOf<String>()
+    private val myPhoneNumbers = mutableListOf<List<String>>()
 
     // 2. Define the Launcher to handle the result (What happens after you pick a contact)
     private val contactPickerLauncher = registerForActivityResult(
@@ -108,7 +110,10 @@ class MainActivity : AppCompatActivity() {
     // 3. Helper function to read the actual number from the database
     private fun getPhoneNumberFromUri(contactUri: Uri) {
         // We only want the Number column
-        val projection = arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER)
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+            ContactsContract.CommonDataKinds.Phone.NUMBER
+        )
 
         // Query the database
         val cursor: Cursor? = contentResolver.query(contactUri, projection, null, null, null)
@@ -116,16 +121,32 @@ class MainActivity : AppCompatActivity() {
         cursor?.use {
             // Move to the first result
             if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
                 val numberIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+
                 val number = it.getString(numberIndex)
+                val name = it.getString(nameIndex)
 
                 // Optional: Clean the number (remove spaces, dashes, etc.)
                 val cleanNumber = number.replace("[^0-9+]".toRegex(), "")
 
                 // Add to your list
-                myPhoneNumbers.add(cleanNumber)
+                myPhoneNumbers.add((listOf(name, cleanNumber)))
 
-                Log.d("ContactApp", "Added: $cleanNumber")
+                val contacts_table = findViewById<TableLayout>(R.id.contacts_table)
+                val row = TableRow(this)
+                val txt_view = TextView(this)
+                txt_view.text = name + '\t' + cleanNumber
+                row.addView(txt_view)
+                contacts_table.addView(row)
+
+
+
+                findViewById<TextView>(R.id.textView).text = myPhoneNumbers.toString()
+
+
+                Log.d("ContactApp", "Number: $cleanNumber")
+                Log.d("ContactApp", "Name: $name")
                 Log.d("ContactApp", "Full List: $myPhoneNumbers")
 
                 Toast.makeText(this, "Saved: $cleanNumber", Toast.LENGTH_SHORT).show()
@@ -156,22 +177,33 @@ class MainActivity : AppCompatActivity() {
         var count = 0
         val emergency_button = findViewById<ImageButton>(R.id.emergency_button)
         val open_contacts_button = findViewById<Button>(R.id.open_contacts)
+        val clear_contacts_button = findViewById<Button>(R.id.clear_contacts)
+        val contacts_table = findViewById<TableLayout>(R.id.contacts_table)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         requestLocationPermission()
 
+        val text_field = findViewById<TextView>(R.id.textView)
+
         emergency_button.setOnClickListener {
             //Toast.makeText(this, "Emergency button clicked", Toast.LENGTH_SHORT).show()
-            val text_field = findViewById<TextView>(R.id.textView)
             count += 1
 
             requestLocationPermission()
-            text_field.text =  LATITUDE + " " + LONGITUDE + " " + count.toString()
+            //text_field.text =  LATITUDE + " " + LONGITUDE + " " + count.toString()
         }
+
 
         open_contacts_button.setOnClickListener {
             openContactPicker()
+            Log.d("hello world", "hello world")
+            //text_field.text = myPhoneNumbers.toString()
         }
 
+        clear_contacts_button.setOnClickListener {
+            myPhoneNumbers.clear()
+            text_field.text = myPhoneNumbers.toString()
+            contacts_table.removeAllViews()
+        }
     }
 }

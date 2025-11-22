@@ -9,6 +9,11 @@
 
     <!-- for contacts -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- for contacts -->
+
+    <!-- for SMS -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- for SMS -->
 
     <application
         android:allowBackup="true"
